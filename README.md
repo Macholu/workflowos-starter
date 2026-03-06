@@ -123,6 +123,10 @@ Environment overrides (optional):
 - `WORKFLOWOS_APPROVER_ALLOWLIST` (comma-separated names)
 - `WORKFLOWOS_GMAIL_ACCESS_TOKEN`, `WORKFLOWOS_GMAIL_FROM`, `WORKFLOWOS_GMAIL_USER_ID`
 
+## Operations
+
+- Approval mode runbook: `docs/approval-mode-ops.md`
+
 ## Memory (SQLite)
 
 On each run, data is stored in SQLite:
