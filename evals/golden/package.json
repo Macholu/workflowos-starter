@@ -1,0 +1,17 @@
+{
+  "name": "@workflowos/evals-golden",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "pnpm --filter @workflowos/core build && pnpm --filter @workflowos/cli build && vitest run",
+    "lint": "eslint tests --ext .ts"
+  },
+  "dependencies": {
+    "@workflowos/cli": "workspace:*",
+    "@workflowos/core": "workspace:*"
+  },
+  "devDependencies": {
+    "vitest": "^2.1.9"
+  }
+}

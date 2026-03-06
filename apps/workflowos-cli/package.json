@@ -1,0 +1,26 @@
+{
+  "name": "@workflowos/cli",
+  "version": "0.1.0",
+  "private": true,
+  "bin": {
+    "workflowos": "dist/index.js"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run --passWithNoTests",
+    "lint": "eslint src --ext .ts",
+    "dev": "pnpm build && node dist/index.js",
+    "dev:tsx": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "@workflowos/core": "workspace:*",
+    "commander": "^13.1.0",
+    "js-yaml": "^4.1.0"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "tsx": "^4.19.3"
+  }
+}
