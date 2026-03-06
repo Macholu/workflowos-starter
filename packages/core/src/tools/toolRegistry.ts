@@ -17,12 +17,22 @@ export interface ToolRegistryOptions {
   policyMode: PolicyMode;
   sideEffectPolicy?: SideEffectPolicy;
   webSearchProvider?: WebSearchProvider;
+  gmailExecutionMode?: GmailExecutionMode;
+  gmailApiConfig?: GmailApiConfig;
 }
 
 export interface ApprovalRecord {
   approved: boolean;
   approver: string;
   reason: string;
+}
+
+export type GmailExecutionMode = 'STUB' | 'GMAIL_API';
+
+export interface GmailApiConfig {
+  accessToken: string;
+  from: string;
+  userId?: string;
 }
 
 export interface SideEffectPolicy {
@@ -51,12 +61,17 @@ export class ToolRegistry {
   readonly notion: NotionConnector;
   readonly cwd: string;
   readonly webSearchProvider: WebSearchProvider;
+  readonly gmailExecutionMode: GmailExecutionMode;
 
   constructor(options: ToolRegistryOptions) {
     this.cwd = options.cwd ?? process.cwd();
     this.webSearchProvider = options.webSearchProvider ?? 'MOCK';
+    this.gmailExecutionMode = options.gmailExecutionMode ?? 'STUB';
     this.policy = options.sideEffectPolicy ?? new DefaultSideEffectPolicy(options.policyMode);
-    this.gmail = new GmailConnector(this.policy);
+    this.gmail = new GmailConnector(this.policy, {
+      mode: this.gmailExecutionMode,
+      gmailApiConfig: options.gmailApiConfig
+    });
     this.gcal = new GCalConnector(this.policy);
     this.notion = new NotionConnector(this.policy);
   }

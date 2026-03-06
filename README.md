@@ -72,6 +72,7 @@ workflowos "/followup send email to lead@example.com"
 workflowos "/promptpack Night Runner IMAX alley chase"
 workflowos "/continuity Night Runner pass 3"
 workflowos "/followup send email to lead@example.com" --policy-mode APPROVAL_REQUIRED --execute-approved-side-effects --approve --approver "Ops Lead" --approval-reason "Reviewed and approved"
+workflowos "/followup send email to lead@example.com" --policy-mode APPROVAL_REQUIRED --gmail-mode GMAIL_API --approver-allowlist "Ops Lead,Director"
 ```
 
 ## Approval Execution Flags
@@ -82,6 +83,8 @@ workflowos "/followup send email to lead@example.com" --policy-mode APPROVAL_REQ
 - `--approver "<name>"`
 - `--approval-reason "<reason>"`
 - `--web-provider MOCK|WIKIPEDIA`
+- `--gmail-mode STUB|GMAIL_API`
+- `--approver-allowlist "NameA,NameB"`
 
 ## Deterministic Output Contract
 
@@ -104,6 +107,8 @@ db_path: .workflowos/workflowos.db
 enable_model_planner: false
 execute_approved_side_effects: false
 web_search_provider: MOCK
+gmail_execution_mode: STUB
+approver_allowlist: []
 ```
 
 Environment overrides (optional):
@@ -114,6 +119,9 @@ Environment overrides (optional):
 - `WORKFLOWOS_ENABLE_MODEL_PLANNER`
 - `WORKFLOWOS_EXECUTE_APPROVED_SIDE_EFFECTS`
 - `WORKFLOWOS_WEB_SEARCH_PROVIDER` (`MOCK` or `WIKIPEDIA`)
+- `WORKFLOWOS_GMAIL_EXECUTION_MODE` (`STUB` or `GMAIL_API`)
+- `WORKFLOWOS_APPROVER_ALLOWLIST` (comma-separated names)
+- `WORKFLOWOS_GMAIL_ACCESS_TOKEN`, `WORKFLOWOS_GMAIL_FROM`, `WORKFLOWOS_GMAIL_USER_ID`
 
 ## Memory (SQLite)
 
@@ -136,5 +144,5 @@ On each run, data is stored in SQLite:
 
 - Add additional production web providers beyond the built-in `WIKIPEDIA` provider.
 - Replace `computerUse` stub with production integration.
-- Replace connector stubs with real APIs and approval workflows.
+- Add production APIs for calendar and notion connectors (gmail has GMAIL_API execution mode).
 - Add richer evaluator suites and regression snapshots.

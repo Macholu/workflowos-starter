@@ -5,3 +5,5 @@ default_mode: BUSINESS_OPS
 enable_model_planner: false
 execute_approved_side_effects: false
 web_search_provider: MOCK
+gmail_execution_mode: STUB
+approver_allowlist: []
