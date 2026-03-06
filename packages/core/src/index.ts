@@ -33,7 +33,9 @@ export {
   type ToolEvidence,
   type ToolRegistryOptions,
   type SideEffectPolicy,
-  type ApprovalRecord
+  type ApprovalRecord,
+  type GmailExecutionMode,
+  type GmailApiConfig
 } from './tools/toolRegistry';
 
 export { fileSearch } from './tools/fileSearch';

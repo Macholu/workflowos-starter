@@ -12,6 +12,8 @@ import {
   ToolRegistry,
   verifyRun,
   WorkflowRegistry,
+  type GmailApiConfig,
+  type GmailExecutionMode,
   type PolicyMode,
   type WebSearchProvider,
   type WorkflowRunResult
@@ -39,6 +41,9 @@ export interface RunLoopConfig {
   executeApprovedSideEffects?: boolean;
   approvalRecord?: { approved: boolean; approver: string; reason: string };
   webSearchProvider?: WebSearchProvider;
+  gmailExecutionMode?: GmailExecutionMode;
+  gmailApiConfig?: GmailApiConfig;
+  approverAllowlist?: string[];
 }
 
 export interface RunLoopResult {
@@ -65,12 +70,16 @@ export async function runLoop(rawInput: string, config: RunLoopConfig): Promise<
   const workflowRegistry = new WorkflowRegistry();
   const workflow = workflowRegistry.get(route.command);
 
-  const policyEngine = new PolicyEngine(config.policyMode);
+  const policyEngine = new PolicyEngine(config.policyMode, {
+    approverAllowlist: config.approverAllowlist
+  });
   const tools = new ToolRegistry({
     cwd: config.cwd,
     policyMode: policyEngine.mode,
     sideEffectPolicy: policyEngine,
-    webSearchProvider: config.webSearchProvider
+    webSearchProvider: config.webSearchProvider,
+    gmailExecutionMode: config.gmailExecutionMode,
+    gmailApiConfig: config.gmailApiConfig
   });
 
   const deterministicPlan = buildPlan({ workflow, rawInput });
@@ -110,6 +119,7 @@ export async function runLoop(rawInput: string, config: RunLoopConfig): Promise<
   const sections = renderer({ rawInput, promptPackage, execution, assumptions });
 
   sections.qa.push(`Policy mode active: ${policyEngine.mode}`);
+  sections.qa.push(`Gmail execution mode: ${config.gmailExecutionMode ?? 'STUB'}`);
   if (policyEngine.mode === 'APPROVAL_REQUIRED' && config.executeApprovedSideEffects) {
     if (config.approvalRecord?.approved) {
       sections.qa.push(

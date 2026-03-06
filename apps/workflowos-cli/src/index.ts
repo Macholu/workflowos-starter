@@ -4,7 +4,12 @@ import path from 'node:path';
 import readline from 'node:readline';
 import { Command } from 'commander';
 import yaml from 'js-yaml';
-import type { PolicyMode, WebSearchProvider } from '@workflowos/core';
+import type {
+  GmailApiConfig,
+  GmailExecutionMode,
+  PolicyMode,
+  WebSearchProvider
+} from '@workflowos/core';
 import { runLoop, type RunLoopConfig } from './runtime/runLoop';
 
 interface FileConfig {
@@ -14,6 +19,8 @@ interface FileConfig {
   enable_model_planner?: boolean;
   execute_approved_side_effects?: boolean;
   web_search_provider?: WebSearchProvider;
+  gmail_execution_mode?: GmailExecutionMode;
+  approver_allowlist?: string[] | string;
 }
 
 function parseWebProvider(value: string | undefined): WebSearchProvider {
@@ -27,6 +34,48 @@ function parseWebProvider(value: string | undefined): WebSearchProvider {
   }
 
   return 'MOCK';
+}
+
+function parseGmailExecutionMode(value: string | undefined): GmailExecutionMode {
+  if (!value) {
+    return 'STUB';
+  }
+
+  const normalized = value.toUpperCase();
+  if (normalized === 'STUB' || normalized === 'GMAIL_API') {
+    return normalized;
+  }
+
+  return 'STUB';
+}
+
+function parseAllowlist(value: string[] | string | undefined): string[] {
+  if (!value) {
+    return [];
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => item.trim()).filter(Boolean);
+  }
+
+  return value
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function resolveGmailApiConfigFromEnv(): GmailApiConfig | undefined {
+  const accessToken = process.env.WORKFLOWOS_GMAIL_ACCESS_TOKEN;
+  const from = process.env.WORKFLOWOS_GMAIL_FROM;
+  if (!accessToken || !from) {
+    return undefined;
+  }
+
+  return {
+    accessToken,
+    from,
+    userId: process.env.WORKFLOWOS_GMAIL_USER_ID ?? 'me'
+  };
 }
 
 function loadConfigFile(configPath: string): FileConfig {
@@ -64,6 +113,13 @@ export function resolveRuntimeConfig(options: { configPath?: string; cwd?: strin
   const webSearchProvider = parseWebProvider(
     process.env.WORKFLOWOS_WEB_SEARCH_PROVIDER ?? fileConfig.web_search_provider
   );
+  const gmailExecutionMode = parseGmailExecutionMode(
+    process.env.WORKFLOWOS_GMAIL_EXECUTION_MODE ?? fileConfig.gmail_execution_mode
+  );
+  const approverAllowlist = parseAllowlist(
+    process.env.WORKFLOWOS_APPROVER_ALLOWLIST ?? fileConfig.approver_allowlist
+  );
+  const gmailApiConfig = resolveGmailApiConfigFromEnv();
 
   return {
     policyMode,
@@ -72,7 +128,10 @@ export function resolveRuntimeConfig(options: { configPath?: string; cwd?: strin
     cwd,
     enableModelPlanner,
     executeApprovedSideEffects,
-    webSearchProvider
+    webSearchProvider,
+    gmailExecutionMode,
+    approverAllowlist,
+    gmailApiConfig
   };
 }
 
@@ -132,6 +191,8 @@ async function main(): Promise<void> {
     .option('--config <path>', 'path to config yaml')
     .option('--policy-mode <mode>', 'override policy mode (DRAFT_ONLY|APPROVAL_REQUIRED)')
     .option('--web-provider <provider>', 'web search provider (MOCK|WIKIPEDIA)')
+    .option('--gmail-mode <mode>', 'gmail connector mode (STUB|GMAIL_API)')
+    .option('--approver-allowlist <csv>', 'comma-separated approver allowlist')
     .option('--execute-approved-side-effects', 'allow execution when explicit approval exists')
     .option('--approve', 'attach explicit approval object for this run')
     .option('--approver <name>', 'approval owner identity')
@@ -144,6 +205,8 @@ async function main(): Promise<void> {
           config?: string;
           policyMode?: string;
           webProvider?: string;
+          gmailMode?: string;
+          approverAllowlist?: string;
           executeApprovedSideEffects?: boolean;
           approve?: boolean;
           approver?: string;
@@ -161,6 +224,14 @@ async function main(): Promise<void> {
 
         if (opts.webProvider) {
           config.webSearchProvider = parseWebProvider(opts.webProvider);
+        }
+
+        if (opts.gmailMode) {
+          config.gmailExecutionMode = parseGmailExecutionMode(opts.gmailMode);
+        }
+
+        if (opts.approverAllowlist) {
+          config.approverAllowlist = parseAllowlist(opts.approverAllowlist);
         }
 
         if (opts.executeApprovedSideEffects) {

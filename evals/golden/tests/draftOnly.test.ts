@@ -14,20 +14,20 @@ function cfg(name: string) {
 }
 
 describe('DRAFT_ONLY policy enforcement', () => {
-  test('connector execute is blocked in DRAFT_ONLY', () => {
+  test('connector execute is blocked in DRAFT_ONLY', async () => {
     const policy = new PolicyEngine('DRAFT_ONLY');
     const tools = new ToolRegistry({
       policyMode: 'DRAFT_ONLY',
       sideEffectPolicy: policy
     });
 
-    expect(() =>
+    await expect(
       tools.gmail.executeSend({
         to: 'test@example.com',
         subject: 'Subject',
         body: 'Body'
       })
-    ).toThrow(/DRAFT_ONLY/);
+    ).rejects.toThrow(/DRAFT_ONLY/);
   });
 
   test('side-effect requests become DraftPayload artifacts instead of execution', async () => {
@@ -77,5 +77,25 @@ describe('DRAFT_ONLY policy enforcement', () => {
     const count = db.prepare('SELECT COUNT(*) AS count FROM approvals').get() as { count: number };
     expect(count.count).toBeGreaterThan(0);
     db.close();
+  });
+
+  test('approver allowlist blocks execution and falls back to draft artifact', async () => {
+    const { result } = await runLoop('/followup send email to test@example.com', {
+      policyMode: 'APPROVAL_REQUIRED',
+      dbPath: '.workflowos/test-approval-allowlist.db',
+      logLevel: 'silent',
+      cwd: process.cwd(),
+      enableModelPlanner: false,
+      executeApprovedSideEffects: true,
+      approverAllowlist: ['trusted-approver'],
+      approvalRecord: {
+        approved: true,
+        approver: 'untrusted-approver',
+        reason: 'try to execute'
+      }
+    });
+
+    expect(result.execution.drafts.length).toBeGreaterThan(0);
+    expect(result.outputText).toContain('Approved execution blocked and converted to draft');
   });
 });

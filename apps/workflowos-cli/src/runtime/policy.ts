@@ -1,11 +1,17 @@
 import type { ApprovalRecord, SideEffectPolicy } from '@workflowos/core';
 import type { PolicyMode } from '@workflowos/core';
 
+interface PolicyEngineOptions {
+  approverAllowlist?: string[];
+}
+
 export class PolicyEngine implements SideEffectPolicy {
   readonly mode: PolicyMode;
+  private readonly approverAllowlist: Set<string>;
 
-  constructor(mode: PolicyMode = 'DRAFT_ONLY') {
+  constructor(mode: PolicyMode = 'DRAFT_ONLY', options: PolicyEngineOptions = {}) {
     this.mode = mode;
+    this.approverAllowlist = new Set(options.approverAllowlist ?? []);
   }
 
   assertCanExecute(action: string, approval?: ApprovalRecord): void {
@@ -15,6 +21,13 @@ export class PolicyEngine implements SideEffectPolicy {
 
     if (!approval || !approval.approved) {
       throw new Error(`APPROVAL_REQUIRED enforced: missing approval for ${action}`);
+    }
+
+    if (
+      this.approverAllowlist.size > 0 &&
+      !this.approverAllowlist.has(approval.approver)
+    ) {
+      throw new Error(`APPROVAL_REQUIRED enforced: approver not allowlisted (${approval.approver})`);
     }
   }
 

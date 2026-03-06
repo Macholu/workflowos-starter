@@ -43,11 +43,11 @@ function buildDraftFromIntent(rawInput: string, tools: ToolRegistry): DraftArtif
   return buildEmailDraftFromInput(rawInput, tools);
 }
 
-function executeSideEffectFromIntent(
+async function executeSideEffectFromIntent(
   rawInput: string,
   tools: ToolRegistry,
   approvalRecord: ApprovalRecord
-): string {
+): Promise<string> {
   const lower = rawInput.toLowerCase();
 
   if (lower.includes('calendar') || lower.includes('meeting')) {
@@ -77,7 +77,7 @@ function executeSideEffectFromIntent(
 
   const emailMatch = rawInput.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
   const to = emailMatch?.[0] ?? 'recipient@example.com';
-  tools.gmail.executeSend(
+  await tools.gmail.executeSend(
     {
       to,
       subject: 'Follow-up from Workflow OS',
@@ -109,12 +109,20 @@ export async function executePlan(input: {
         input.executeApprovedSideEffects &&
         input.approvalRecord?.approved
       ) {
-        const executionNote = executeSideEffectFromIntent(
-          input.rawInput,
-          input.tools,
-          input.approvalRecord
-        );
-        notes.push(executionNote);
+        try {
+          const executionNote = await executeSideEffectFromIntent(
+            input.rawInput,
+            input.tools,
+            input.approvalRecord
+          );
+          notes.push(executionNote);
+          continue;
+        } catch (error) {
+          drafts.push(buildDraftFromIntent(input.rawInput, input.tools));
+          notes.push(
+            `Approved execution blocked and converted to draft: ${(error as Error).message}`
+          );
+        }
         continue;
       }
 
